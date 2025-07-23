@@ -80,15 +80,16 @@ GROUP BY
     client_id;
 
 # 修改视图
-# 将client_blance视图修改为 按差额 降序排列
+# 将client_balance视图修改为 按差额 降序排列
 USE sql_invoicing;
 
 # 方法1. 先 DROP 再 CREATE
-DROP VIEW client_blance;# 若不存在这个视图，用DROP会报错，最好加上 IF EXISTS，后面会讲
-# CREATE VIEW client_blance AS
+# DROP VIEW client_balance;# 若不存在这个视图，直接用DROP会报错。
+DROP VIEW IF EXISTS sql_invoicing.client_balance; # 添加IF EXISTS 即使不存在该视图，也不会报错，推荐使用。
+# CREATE VIEW client_balance AS
 
 # 方法2. CREATE OR REPLACE
-CREATE OR REPLACE VIEW client_blance AS
+CREATE OR REPLACE VIEW client_balance AS
 SELECT
     client_id,
     c.name,
@@ -121,7 +122,7 @@ FROM
 WHERE
     (invoice_total - payment_total) > 0
 WITH CHECK OPTION;
-# invoices_with_balence视图满足条件，是可更新视图，可以增删改：
+# invoices_with_balance视图满足条件，是可更新视图，可以增删改：
 
 # 1. DELETE
 # 删掉id为1的发票记录

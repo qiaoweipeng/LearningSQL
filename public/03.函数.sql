@@ -1,220 +1,89 @@
-# 1.汇总数据
-# 	汇总统计型查询非常有用，甚至可能常常是你的主要工作内容
-# 	1.1 聚合函数
-# 	聚合函数也是函数的一类，但是为了课程的连贯性需要结合后面的GROUP BY，所以在这里单独讲
-# 	聚合函数：输入一系列值并聚合为一个结果的函数
-USE sql_invoicing;
--- SELECT选择的不仅可以是列，也可以是数字、列间表达式、列的聚合函数
-SELECT
-    MAX(invoice_date),
-    MAX(invoice_total),
-    MIN(invoice_total),
-    AVG(invoice_total),
-    SUM(invoice_total * 1.1),
-    COUNT(invoice_total),
-    -- 和上一个结果一样
-    COUNT(payment_date),
-    -- 聚合函数会忽略空值，支付数少于发票数
-    COUNT(DISTINCT client_id)
--- DISTINCT client_id筛掉了该列的重复值，再COUNT计数，不同顾客数
-FROM
-    invoices
-WHERE
-    invoice_date > '2019-07-01';
-SELECT *
-FROM
-    invoices
-WHERE
-    invoice_date > '2019-07-01';
--- 想统计2019年下半年的结果
+/*Function 函数
+    1. 聚合函数：输入一系列值并聚合为一个结果的函数
+    常见的聚合函数：
+        COUNT（）计算行数
+        SUM（）求和
+        AVG（）求平均值
+        MAX（）求最大值
+        MIN（）求最小值
+    2. 窗口函数：
 
-# 	目标								total_sales					total_payments    what_we_expect(the difference)
-# 	date_range
-# 	1st_half_of_2019
-# 	2nd_half_of_2019
-# 	Total
-# 	思路：分类子查询 + 聚合函数 + UNION
+    3. STRING 字符串
+        lenght（）
+        trim（）
+        substring（）
+        replace（）
+    4. NUMERIC 数值
+            floor（）
+    5. DATE 日期
+        FORMAT DATE
 
-USE invoicing;
-SELECT
-    '上半年'                           AS 统计日期,
-    SUM(invoice_total)                 AS total_sales,
-    SUM(payment_total)                 AS total_payments,
-    SUM(invoice_total - payment_total) AS what_we_expect
-FROM
-    invoices
-WHERE
-    invoice_date BETWEEN '2019-01-01' AND '2019-06-30'
+    6.
 
-UNION
-SELECT
-    '下半年'                           AS 统计日期,
-    SUM(invoice_total)                 AS total_sales,
-    SUM(payment_total)                 AS total_payments,
-    SUM(invoice_total - payment_total) AS what_we_expect
-FROM
-    invoices
-WHERE
-    invoice_date BETWEEN '2019-07-01' AND '2020-01-01'
-
-UNION
-SELECT
-    'Total'                            AS 统计日期,
-    SUM(invoice_total)                 AS total_sales,
-    SUM(payment_total)                 AS total_payments,
-    SUM(invoice_total - payment_total) AS what_we_expect
-FROM
-    invoices
-WHERE
-    invoice_date BETWEEN '2019-01-01' AND '2019-12-31';
-# 1.2 GROUP BY子句
-# 按一列或多列分组，注意语句的位置。
-
-# 按照一个字段分组
-# 在发票记录表中按不同顾客分组统计各个顾客下半年总销售额并降序排列
-USE invoicing;
-SELECT
-    client_id,
-    SUM(invoice_total) AS total_sales
-FROM
-    invoices
-WHERE
-    invoice_date >= '2019-07-01'
-GROUP BY
-    client_id;
-# 按照多个字段分组
-# 汇总每个城市的总销售额
-SELECT
-    state,
-    city,
-    SUM(invoice_total) AS total_sales
-FROM
-    invoices
-        JOIN clients
-             USING (client_id)
-GROUP BY
-    state, city
-ORDER BY
-    state;
-
-# 在 payments 表中，按日期和支付方式分组统计总付款额
-USE sql_invoicing;
-SELECT
-    date,
-    pm.name     AS payment_method,
-    SUM(amount) AS total_payments
-FROM
-    payments p
-        JOIN payment_methods pm
-             ON p.payment_method = pm.payment_method_id
-GROUP BY
-    date, pm.name
-ORDER BY
-    date;
-# 1.3 HAVING子句
-USE sql_invoicing;
-SELECT
-    client_id,
-    SUM(invoice_total) AS total_sales,
-    COUNT(*)           AS number_of_invoices
-FROM
-    invoices
-GROUP BY
-    client_id
-HAVING
-      total_sales > 500
-  AND number_of_invoices > 5;
-
-USE sql_store;
-SELECT
-    c.customer_id,
-    CONCAT(last_name, ' ', first_name) AS 用户名,
-    SUM(oi.quantity * oi.unit_price)   AS total_sales
-FROM
-    customers c
-        JOIN orders o USING (customer_id)
-        JOIN order_items oi USING (order_id)
-WHERE
-    state = '陕西'
-GROUP BY
-    c.customer_id, last_name, first_name
-HAVING
-    total_sales > 100;
-TODO;
-# 1.4 ROLLUP
-
-# 2.编写复杂查询
+    7. IF和CASE
+  */
 /*
-主要是子查询，有的前面已经讲过了
+聚合函数的使用
 */
 
-# 2.1 子查询
-#     在products中，找到所有比Iphone16（id = 1）价格高的
-# 关键：要找比Iphone16价格高的，得先用子查询找到IPhone16的价格
-USE sql_store;
-SELECT *
-FROM
-    products
-WHERE
-    unit_price > (
-                 SELECT
-                     unit_price
-                 FROM
-                     products
-                 WHERE
-                     product_id = 1);
-
-# 在sql_hr.employees表里，选择所有工资超过平均工资的雇员
-# 关键：先由子查询得到平均工资
-USE sql_hr;
-SELECT *
-FROM
-    employees
-WHERE
-    salary > (
-             SELECT
-                 AVG(salary)
-             FROM
-                 employees);
-
-# 2.2 IN运算符
-#     在sql_store.products找出那些从未被订购过的产品
-#     思路：
-# 1. orders.items表里有所有产品被订购的记录，从中可得到 所有被订购过的产品 的列表（注意用 DISTINCT 关键
-# 字进行去重）
-# 2. 不在这列表里（NOT IN 的使用）的产品即为从未被订购过的产品
-USE sql_store;
-SELECT *
-FROM
-    products
-WHERE
-    product_id NOT IN (
-                      SELECT DISTINCT
-                          product_id
-                      FROM
-                          order_items);
-# 在 sql_invoicing.clients 中找到那些没有过发票记录的客户
-# 思路：和上一个例子完全一致，在invoices里用DISTINCT找到所有有过发票记录的客户的列表，再用NOT IN来筛
-# 选
+#常用的聚合函数有哪些？
 USE sql_invoicing;
-SELECT *
+# 计算行数
+SELECT
+    COUNT(invoice_id),
+    # 使用 DISTINCT剔除重复行
+    COUNT(DISTINCT payment_total),
+    COUNT(payment_total)
 FROM
-    clients
+    invoices;
+# 平均值、最大值和最小值
+SELECT
+    AVG(invoice_total),
+    MAX(invoice_total),
+    MIN(invoice_total)
+FROM
+    invoices;
+# 求和
+SELECT
+    SUM(invoice_total + 100)
+FROM
+    invoices
 WHERE
-    client_id NOT IN (
-                     SELECT DISTINCT
-                         client_id
-                     FROM
-                         payments);
-# 2.3 子查询 VSJOIN
-TODO
-# 2.4 ALL关键字
-# 2.5 ANY关键字
-# 2.6 相关子查询
-# 2.7 EXISTS运算符
-# 2.8 SELECT子句的子查询
-# 2.9 FROM子句的子查询
+    invoice_id = 10;
 
+/*
+窗口函数
+*/
+
+
+
+/*
+STRING
+*/
+
+
+
+/*
+NUMERIC
+*/
+
+
+
+/*
+DATE
+*/
+
+
+
+
+
+/*
+IFNULL和COALESCE
+*/
+
+/*
+IF和CASE
+*/
 
 # 3.基本函数
 /*
@@ -459,3 +328,45 @@ ORDER BY
     points DESC;
 -- 结果是一样的，更简洁。
 -- 但有时候像前面那样写的虽然冗余但详细一点，可以提高可读性。
+
+-- 想统计2019年下半年的结果
+
+# 	目标								total_sales					total_payments    what_we_expect(the difference)
+# 	date_range
+# 	1st_half_of_2019
+# 	2nd_half_of_2019
+# 	Total
+# 	思路：分类子查询 + 聚合函数 + UNION
+
+USE invoicing;
+SELECT
+    '上半年'                           AS 统计日期,
+    SUM(invoice_total)                 AS total_sales,
+    SUM(payment_total)                 AS total_payments,
+    SUM(invoice_total - payment_total) AS what_we_expect
+FROM
+    invoices
+WHERE
+    invoice_date BETWEEN '2019-01-01' AND '2019-06-30'
+
+UNION
+SELECT
+    '下半年'                           AS 统计日期,
+    SUM(invoice_total)                 AS total_sales,
+    SUM(payment_total)                 AS total_payments,
+    SUM(invoice_total - payment_total) AS what_we_expect
+FROM
+    invoices
+WHERE
+    invoice_date BETWEEN '2019-07-01' AND '2020-01-01'
+
+UNION
+SELECT
+    'Total'                            AS 统计日期,
+    SUM(invoice_total)                 AS total_sales,
+    SUM(payment_total)                 AS total_payments,
+    SUM(invoice_total - payment_total) AS what_we_expect
+FROM
+    invoices
+WHERE
+    invoice_date BETWEEN '2019-01-01' AND '2019-12-31';

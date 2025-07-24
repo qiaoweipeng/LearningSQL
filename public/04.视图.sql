@@ -34,7 +34,9 @@ Views 视图
             在创建视图末尾加上WITH CHECK OPTION，你执行该语句，会报错，表示不允许修改。
 */
 
-# 创建View
+/*
+创建视图
+*/
 USE sql_invoicing;
 CREATE VIEW sales_by_client AS
 SELECT
@@ -47,7 +49,9 @@ FROM
 GROUP BY
     client_id, name;
 
-# 使用View
+/*
+使用视图
+*/
 SELECT *
 FROM
     sales_by_client;
@@ -62,7 +66,9 @@ FROM
 WHERE
     s.total_sales > 500;
 
-# 删除view
+/*
+删除视图
+*/
 DROP VIEW sales_by_client;
 
 # 创建视图
@@ -79,7 +85,9 @@ FROM
 GROUP BY
     client_id;
 
-# 修改视图
+/*
+修改视图
+*/
 # 将client_balance视图修改为 按差额 降序排列
 USE sql_invoicing;
 
@@ -102,7 +110,9 @@ GROUP BY
 ORDER BY
     balanse DESC;
 
-# 可更新视图的演示：
+/*
+可更新视图
+*/
 
 # 创建视图
 USE sql_invoicing;
@@ -122,7 +132,7 @@ FROM
 WHERE
     (invoice_total - payment_total) > 0
 WITH CHECK OPTION;
-# invoices_with_balance视图满足条件，是可更新视图，可以增删改：
+# invoices_with_balance视图满足条件，是可更新视图，可以增删改！
 
 # 1. DELETE
 # 删掉id为1的发票记录
@@ -145,9 +155,14 @@ WHERE
 
 # 通过视图新增数据比较复杂切不可靠，一般不会这么操作
 
-#  WITH CHECK OPTION
-# 创建invoices_with_balance视图时，末尾没有添加WITH CHECK OPTION,以下SQL语句可以执行成功，并且对应的数据会从视图消失。因为符合视图中的筛选条件。
-#                  如果末尾添加WITH CHECK OPTION，以下SQL语句执行会报错，不允许修改。
+/*
+WITH CHECK OPTION
+
+  创建invoices_with_balance视图时，末尾没有添加WITH CHECK OPTION,以下SQL语句可以执行成功，
+并且对应的数据会从视图消失。因为符合视图中的筛选条件。
+  如果末尾添加WITH CHECK OPTION，以下SQL语句执行会报错，不允许修改。
+*/
+
 UPDATE invoices_with_balance
 SET
     invoice_total = payment_total

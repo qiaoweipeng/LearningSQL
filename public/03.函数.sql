@@ -1,32 +1,11 @@
-/*Function 函数
-    1. 聚合函数：输入一系列值并聚合为一个结果的函数
-    常见的聚合函数：
-        COUNT（）计算行数
-        SUM（）求和
-        AVG（）求平均值
-        MAX（）求最大值
-        MIN（）求最小值
-    2. 窗口函数：
-
-    3. STRING 字符串
-        lenght（）
-        trim（）
-        substring（）
-        replace（）
-    4. NUMERIC 数值
-            floor（）
-    5. DATE 日期
-        FORMAT DATE
-
-    6.
-
-    7. IF和CASE
-  */
 /*
-聚合函数的使用
+Function 函数
+    聚合函数、窗口函数、String、Numeric、Date、高级函数（IFNULL和COALESCE、IF和CASE）
+    函数肯定不止这些，比如String或Date还有很多就不一一展示了，自行查阅文档。
 */
 
-#常用的聚合函数有哪些？
+# 聚合函数：输入一系列值并聚合为一个结果的函数
+# 常用的聚合函数有哪些？
 USE sql_invoicing;
 # 计算行数
 SELECT
@@ -51,46 +30,10 @@ FROM
 WHERE
     invoice_id = 10;
 
-/*
-窗口函数
-*/
+# 窗口函数
+# TODO
 
-
-
-/*
-STRING
-*/
-
-
-
-/*
-NUMERIC
-*/
-
-
-
-/*
-DATE
-*/
-
-
-
-
-
-/*
-IFNULL和COALESCE
-*/
-
-/*
-IF和CASE
-*/
-
-# 3.基本函数
-/*
-    SQL中的函数有：聚合函数、Numeric、String、Date
-    还有其他的：IF NULL、COALESCE、IF和CASE
-*/
-# 3.1Numeric
+# Numeric 数值
 SELECT ABS(-10); -- 返回 10。（求绝对值）
 SELECT CEIL(4.2); -- 返回 5。（天花板函数，不管是4.几，结果都是5）
 SELECT FLOOR(4.5); -- 返回 4.(地板函数，不管是4.几，结果都是4)
@@ -104,53 +47,62 @@ SELECT LEAST(1, 5, 2, 8, 3);
 -- 返回 1 （一组数字中的最小值）
 
 
--- 3.2 String
-SELECT LENGTH('sky'); -- 返回 3 （求字符串长度）
+-- String
+/*统计字符个数*/
+SELECT LENGTH('sky');
+-- 返回 3 （求字符串长度）
+/*大小写转换*/
 SELECT UPPER('sky'); -- 返回'SKY' (转大写)
-SELECT LOWER('Sky');-- 'sky'(转小写)
-
+SELECT LOWER('Sky');
+-- 'sky'(转小写)
+/*去除空格*/
 SELECT LTRIM('  Sky');-- 去除左边空格
 SELECT RTRIM('Sky  ');-- 去除右边空格
-SELECT TRIM('  Sky  ');-- 去除左右空格
-
+SELECT TRIM('  Sky  ');
+-- 去除左右空格
+/*字符串截取*/
 SELECT LEFT('Microsoft', 4); -- 返回 Micr （从左边截取4个字符）
-SELECT RIGHT('Microsoft', 4); -- 返回 soft （从左边截取4个字符）
+SELECT RIGHT('Microsoft', 4); -- 返回 soft （从右边截取4个字符）
 SELECT SUBSTRING('Microsoft', 5, 2);-- 返回os （从第5个开始截取，截取2个字符，SQL计数是从第一个开始，而非0）
-SELECT SUBSTRING('Microsoft', 6);-- 返回soft （从第6个开始截取，截取到末尾）
-
+SELECT SUBSTRING('Microsoft', 6);
+-- 返回soft （从第6个开始截取，截取到末尾）
+/*定位*/
 SELECT LOCATE('soft', 'Microsoft');
 -- 返回6 （定位'soft'在'Microsoft'中首次出现的位置）
 -- 没有的话，返回0，其他编程语言返回-1
 -- 这个定位/查找函数依然是不区分大小写的
-
+/*替换*/
 SELECT REPLACE('Microsoft', 'soft', 'software');
--- 返回 'Microsoftware' (将'Microdoft'中的'soft'替换为'software')
--- concatenate v. 连接
+-- 返回 'Microsoftware' (将'Microsoft'中的'soft'替换为software')
+
+/*连接*/
 USE sql_store;
 SELECT
+    -- concatenate v. 连接
+    #     把名字连接起来
     CONCAT(last_name, first_name) AS full_name
 FROM
     customers;
 
-# 3.3 Date
-SELECT NOW(); -- 2025-07-19 23:35:29
-SELECT CURDATE(); -- 2025-07-19
-SELECT CURTIME(); -- 23:36:49
-SELECT YEAR(NOW()); -- 2025
-SELECT DAYNAME(NOW()); -- Saturday
-SELECT MONTHNAME(NOW());
--- July
 
-
--- 标准SQL语句有一个类似的函数EXTRACT()，若需要在不同DBMS中录入代码，最好用EXTRACT()：
--- EXTRACT(单位 FROM 日期时间对象)
-SELECT EXTRACT(YEAR FROM NOW());-- 2015
-SELECT EXTRACT(MONTH FROM NOW()); -- 7
-SELECT EXTRACT(DAY FROM NOW());-- 19
+# Date
+/*当前日期*/
+SELECT NOW(); --  2025-07-19 23:35:29。表示当前完整日期和时间
+SELECT CURDATE(); -- 2025-07-19。表示当前日期
+SELECT CURTIME();
+-- 23:36:49。表示当前时间。
+/*截取日期*/
+SELECT YEAR('09-09-09'); -- 2009。自动截取年
+SELECT YEAR(NOW()); -- 2025。当前年
+SELECT DAYNAME(NOW()); -- Saturday 当前星期
+SELECT MONTHNAME(NOW());-- July。当前月
+SELECT EXTRACT(YEAR FROM NOW());-- 2025 当前年
+SELECT EXTRACT(MONTH FROM NOW()); -- 7 表示当前月
+SELECT EXTRACT(DAY FROM NOW());-- 19 当前日
 SELECT EXTRACT(HOUR FROM NOW());
--- 23
+-- 23 当前几点
 
--- 返回今年的订单
+-- 查询今年的订单
 -- 用时间日期函数而非手动输入年份，代码更可靠，不会随着时间的改变而失效
 USE sql_store;
 SELECT *
@@ -158,58 +110,46 @@ FROM
     orders
 WHERE
     YEAR(order_date) = YEAR(NOW());
--- 两次提取'年'元素来比较
+-- 提取两个年来比较
 
-#  3.4 Format Dates and Times
--- 日期事件格式化函数应该只是转换日期时间对象的显示格式（另外始终铭记日期时间本质是数值）
--- 方法
--- 很多像这种完全不需要记也不可能记得完，重要的是知道有这么个可以实现这个功能的函数，具体的格式说明符
--- （Specifiers）可以需要的时候去查，至少有两种方法：
--- 1. 直接谷歌关键词 如 mysql date format functions, 其实是在官方文档的 12.7 Date and Time Functions 小结
--- 里，有两个函数的说明和specifiers表
--- 2. 用软件里的帮助功能，如workbench里的HELP INDEX打开官方文档查询或者右侧栏的 automatic comtext
--- help (其是也是查官方文档，不过是自动的)
-SELECT DATE_FORMAT(NOW(), '%M %d,%Y');
-SELECT TIME_FORMAT(NOW(), '%H:%i %p');
-# 格式说明符里，大小写代表不同的格式，这是目前SQL里第一次出现大小写不同的情况
-# 3.5 计算 Dates and Times
-#     有时需要对日期事件对象进行运算，如增加一天或算两个时间的差值之类，介绍一些最有用的日期时间计算函数：
-# 增加或减少一定的天数、月数、年数、小时数等等
-SELECT DATE_ADD(NOW(), INTERVAL -1 DAY);
-SELECT DATE_SUB(NOW(), INTERVAL 1 YEAR);
-# 计算日期差异
-SELECT DATEDIFF('2019-01-01 09:00', '2019-01-05');
--- -4
--- 会忽略时间部分，只算日期差异
--- 再次注意手写日期要加引号
-#     借助 TIME_TO_SEC 函数计算时间差异，TIME_TO_SEC 会计算从 00:00 到某时间经历的秒数
-SELECT TIME_TO_SEC('09:00');
+#  Format Date 下面是专门用来格式化日期的函数，日期的本质是数值
+#   不需要刻意全部都记下来，你也记不完，会查文档，知道怎么用就行
+#  日期要用引号括起来
+SELECT DATE_FORMAT(NOW(), '%M %d,%Y');# 对日期进行格式化
+SELECT TIME_FORMAT(NOW(), '%H:%i %p'); # 对时间进行格式化
+SELECT DATE_ADD(NOW(), INTERVAL 1 DAY); # 增加一定的数量
+SELECT DATE_SUB(NOW(), INTERVAL 1 YEAR); # 减少一定的数量
+SELECT DATEDIFF('2019-01-01 09:00', '2019-01-05'); # 计算差异。会忽略Time部分，只计算date部分
+SELECT TIME_TO_SEC('09:00'); # 计算差异。TIME_TO_SEC 会计算从 00:00 到某时间经历的秒数
 SELECT TIME_TO_SEC('09:00') - TIME_TO_SEC('09:02');
--- 120
 
+# 高级函数
 
-#  3.6 IFNULL和COALESCE
-# 两个用来替换空值的函数：IFNULL, COALESCE.
-# 前者用来返回两个值中的首个非空值，用来替换空值
-# 后者用来返回一系列值中的首个非空值，用法更灵活
+# IFNULL和COALESCE ：用来替换空值的函数
+#     IFNULL：如果表达式为 NULL，则返回指定值，否则返回表达式。
+SELECT IFNULL(NULL, 'Hello'); # 返回'Hello'
+SELECT IFNULL('null', 'Hello');
+# 返回'null'
+#     COALESE：返回列表中的第一个非空值。（推荐）
+SELECT COALESCE(NULL, NULL, NULL, 'Hello', NULL, 'Hi');
+# 返回'Hello'
 
-#     将orders里shipper.id中的空值替换为'Not Assigned'（未分配）
+# 将orders表中shipper.id中的空值替换为'Not Assigned'（未分配）
 USE sql_store;
 SELECT
     order_id,
-    IFNULL(shipper_id, 'Not Assigned') AS shipper
+    COALESCE(shipper_id, 'Not Assigned') AS shipper
 FROM
     orders;
-# 将orders里shipper.id中的空值先替换comments，若comments也为空再替换为'Not Assigned'（未分配）
+# 将orders里shipper.id中的空值先替换comments，
+# 若comments也为空再替换为'Not Assigned'（未分配）
 SELECT
     order_id,
     COALESCE(shipper_id, comments, 'Not Assigned') AS shipper
 FROM
     orders;
-# COALESCE 函数是返回一系列值中的首个非空值，更灵活
-#     coalesce vi. 合并；结合；联合
 
-#     返回一个有如下两列的查询结果：
+# 返回一个有以下两列的查询结果：
 # 1. customer(顾客的全名)
 # 2. phone(没有的话，显示'Unknown')
 USE sql_store;
@@ -218,13 +158,16 @@ SELECT
     COALESCE(phone, 'Unknown') AS phone
 FROM
     customers;
--- 上面的案例COALESCE替换为IFNULL也可以。
+# 上面的案例COALESCE替换为IFNULL也可以。
 
 
-# 3.7 IF和CASE
-# 将订单表中订单按是否是今年的订单分类为 active（活跃）和 archived（存档），之前讲过用UNION法，即用
-# 两次查询分别得到今年的和今年以前的订单，添加上分类列再用UNION合并，这里直接在SELECT里运用IF函数可
-# 以更容易地得到相同的结果
+/*
+IF和CASE：流程控制的函数
+  */
+
+# 将订单表中订单按是否是今年的订单分类为 '活跃'和 '非活跃'。
+# 之前讲过用UNION法，即用两次查询分别得到今年的和今年以前的订单，
+# 添加上分类列再用UNION合并，这里直接在SELECT里运用IF函数可以更容易地得到相同的结果
 USE sql_store;
 SELECT *,
        IF(YEAR(order_date) = YEAR(NOW()), '活跃用户', '非活跃用户') AS category
@@ -233,43 +176,43 @@ FROM
 
 # 得到包含如下字段的表：
 # 1. product_id
-# 2. name(产品名称)
-# 3. orders(该产品出现在订单中的次数)
-# 4. frequency(根据是否多于一次而分类为'Once'或'Many times')
+# 2. name
+# 3. 该产品出现在订单中的次数。
+# 4. 分类。根据多于一次分类为'多次下单','下单一次','从未下单'
 USE sql_store;
 SELECT
     product_id,
     name,
-    COUNT(*)                               AS orders,
-    IF(COUNT(*) = 1, 'Once', 'Many times') AS frequency
+    COUNT(order_id)                                                                      AS 订单数,
+    IF(COUNT(order_id) = 1, '下单一次', IF(COUNT(order_id) > 1, '下单多次', '从未下单')) AS 下单次数
 FROM
     products
-        JOIN order_items USING (product_id)
+        LEFT JOIN order_items USING (product_id)
 GROUP BY
     product_id;
 
-# 不是将订单分两类，而是分为三类：今年的是'Active', 去年的是'Last Year', 比去年更早的是'Achived'：
+# 将订单归类为：
+# 今年订单，订单创建日期是今年
+# 去年订单，订单创建日期是去年
+# 更早的订单，订单创建日期比去年更早
 USE sql_store;
-
 SELECT
     order_id,
     CASE
         WHEN YEAR(order_date) = YEAR(NOW())
-            THEN '活跃用户'
+            THEN '今年订单'
         WHEN YEAR(order_date) = YEAR(NOW()) - 1
-            THEN '去年活跃用户'
+            THEN '去年订单'
         WHEN YEAR(order_date) < YEAR(NOW()) - 1
-            THEN '非活跃用户'
-            ELSE '未来'
-    END AS '是否为活跃用户'
+            THEN '更早的订单'
+    END AS '订单日期归类'
 FROM
     orders;
-# ELSE 'Future' 是可选的，实验发现若分类不完整，比如只写了今年和去年的两个分类条件，则不在这两个分类的
-# 记录的category字段会得到是null（当然）.
 
-# 得到包含如下字段的表：customer, points, category（根据积分<2k，2k~3k（包含两端），>3k分为青铜白银
-# 和黄金用户）
+# 查询：得到包含如下字段的表：
+# full name, points, category（根据积分<2k，2k~3k（包含两端），>3k分为青铜白银和黄金用户）
 # 之前也是用过UNION法，分别查询加分类字段再合并，很麻烦。
+# 使用CASE
 USE sql_store;
 SELECT
     CONCAT(last_name, ' ', first_name) AS 用户名,
@@ -289,9 +232,9 @@ FROM
 ORDER BY
     points DESC;
 
-# 其实也可以用IF嵌套，但感觉没有CASE语句结构清晰、可读性好
+# 使用IF
 SELECT
-    CONCAT(last_name, '' first_name)        AS 用户名,
+    CONCAT(last_name, '', first_name)        AS 用户名,
     points,
     IF(points < 2000, '青铜',
        IF(points BETWEEN 2000 AND 3000, '白银',
@@ -299,7 +242,7 @@ SELECT
 FROM
     customers;
 
-# 其实分类条件可以进一步简化如下：
+# 简化CASE语句
 SELECT
     CONCAT(last_name, '', first_name) AS 用户名,
     points,
@@ -315,7 +258,7 @@ FROM
 ORDER BY
     points DESC;
 
--- 或
+# 简化IF语句
 
 SELECT
     CONCAT(last_name, '', first_name)      AS 用户名,
@@ -326,47 +269,3 @@ FROM
     customers
 ORDER BY
     points DESC;
--- 结果是一样的，更简洁。
--- 但有时候像前面那样写的虽然冗余但详细一点，可以提高可读性。
-
--- 想统计2019年下半年的结果
-
-# 	目标								total_sales					total_payments    what_we_expect(the difference)
-# 	date_range
-# 	1st_half_of_2019
-# 	2nd_half_of_2019
-# 	Total
-# 	思路：分类子查询 + 聚合函数 + UNION
-
-USE invoicing;
-SELECT
-    '上半年'                           AS 统计日期,
-    SUM(invoice_total)                 AS total_sales,
-    SUM(payment_total)                 AS total_payments,
-    SUM(invoice_total - payment_total) AS what_we_expect
-FROM
-    invoices
-WHERE
-    invoice_date BETWEEN '2019-01-01' AND '2019-06-30'
-
-UNION
-SELECT
-    '下半年'                           AS 统计日期,
-    SUM(invoice_total)                 AS total_sales,
-    SUM(payment_total)                 AS total_payments,
-    SUM(invoice_total - payment_total) AS what_we_expect
-FROM
-    invoices
-WHERE
-    invoice_date BETWEEN '2019-07-01' AND '2020-01-01'
-
-UNION
-SELECT
-    'Total'                            AS 统计日期,
-    SUM(invoice_total)                 AS total_sales,
-    SUM(payment_total)                 AS total_payments,
-    SUM(invoice_total - payment_total) AS what_we_expect
-FROM
-    invoices
-WHERE
-    invoice_date BETWEEN '2019-01-01' AND '2019-12-31';

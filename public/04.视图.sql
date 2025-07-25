@@ -1,8 +1,6 @@
 /*
 Views 视图
-
    概念：
-
     视图就是为了简化查询，你可以理解为一张虚拟表，在原table基础在再次抽象，将一些复杂的查询写在视图中，只需要使用视图即可。
 
     视图的优点：
@@ -34,9 +32,7 @@ Views 视图
             在创建视图末尾加上WITH CHECK OPTION，你执行该语句，会报错，表示不允许修改。
 */
 
-/*
-创建视图
-*/
+# 创建视图
 USE sql_invoicing;
 CREATE VIEW sales_by_client AS
 SELECT
@@ -49,9 +45,7 @@ FROM
 GROUP BY
     client_id, name;
 
-/*
-使用视图
-*/
+# 使用视图
 SELECT *
 FROM
     sales_by_client;
@@ -59,22 +53,24 @@ FROM
 SELECT
     s.name,
     s.total_sales,
-    phone
+    c.phone
 FROM
     sales_by_client s
         JOIN clients c USING (client_id)
 WHERE
-    s.total_sales > 500;
+    s.total_sales > 900;
 
-/*
-删除视图
-*/
-DROP VIEW sales_by_client;
+
+# 删除视图
+DROP VIEW IF EXISTS sales_by_client;
 
 # 创建视图
 # 创建一个客户差额表视图，可以看到客户的id，名字以及差额（发票总额-支付总额）
 USE sql_invoicing;
-CREATE VIEW client_blance AS
+
+DROP VIEW client_balance;
+
+CREATE VIEW client_balance AS
 SELECT
     client_id,
     c.name,
@@ -85,18 +81,32 @@ FROM
 GROUP BY
     client_id;
 
-/*
-修改视图
-*/
+SELECT *
+FROM
+    client_balance;
+
+
+# 修改视图
+
 # 将client_balance视图修改为 按差额 降序排列
+# 方法1. 先 DROP 再 CREATE。意思就是先删除原有视图，然后创建新视图。
+# 方法2. CREATE OR REPLACE。意思就是先看你有视图吗，如果有就修改，没有就创建。
 USE sql_invoicing;
-
-# 方法1. 先 DROP 再 CREATE
-# DROP VIEW client_balance;# 若不存在这个视图，直接用DROP会报错。
-DROP VIEW IF EXISTS sql_invoicing.client_balance; # 添加IF EXISTS 即使不存在该视图，也不会报错，推荐使用。
-# CREATE VIEW client_balance AS
-
-# 方法2. CREATE OR REPLACE
+# 方法1：
+DROP VIEW IF EXISTS client_balance;
+CREATE VIEW client_balance AS
+SELECT
+    client_id,
+    c.name,
+    SUM(invoice_total - payment_total) AS balance
+FROM
+    clients c
+        JOIN invoices i USING (client_id)
+GROUP BY
+    client_id
+ORDER BY
+    balance DESC;
+# 方法2：
 CREATE OR REPLACE VIEW client_balance AS
 SELECT
     client_id,
@@ -110,10 +120,7 @@ GROUP BY
 ORDER BY
     balanse DESC;
 
-/*
-可更新视图
-*/
-
+# 可更新视图
 # 创建视图
 USE sql_invoicing;
 CREATE OR REPLACE VIEW invoices_with_balance AS
@@ -132,6 +139,10 @@ FROM
 WHERE
     (invoice_total - payment_total) > 0
 WITH CHECK OPTION;
+
+SELECT *
+FROM
+    invoices_with_balance;
 # invoices_with_balance视图满足条件，是可更新视图，可以增删改！
 
 # 1. DELETE
@@ -148,12 +159,13 @@ SET
     due_date = DATE_ADD(due_date, INTERVAL 2 DAY)
 WHERE
     invoice_id = 2;
-# 3. INSERT
-# 在视图中用INSERT新增记录的话还有另一个前提，即视图必须包含其底层所有原始表的所有必须字段（这很好理解）
+# INSERT
+# 在视图中用INSERT新增记录，其底层必须包含原始表的所有必须字段！
 # 例如，若这个invoices_with_balance视图里没有invoice_date字段（invoices中的必须字段），那就无法通过该
 # 视图向invoices表新增记录，因为invoices表不会接受必须字段invoice_date为空的记录
 
 # 通过视图新增数据比较复杂切不可靠，一般不会这么操作
+# 这里就不演示了，知道可以这么做就行！
 
 /*
 WITH CHECK OPTION
@@ -165,6 +177,8 @@ WITH CHECK OPTION
 
 UPDATE invoices_with_balance
 SET
+#     这里通过修改价格来达到不满足该视图条件，不满足，正常应该是不会在该视图显示，
+#     但是使用WITH CHECK OPTION，既然数据会从视图消失，那干脆就不让你改了。
     invoice_total = payment_total
 WHERE
-    invoice_id = 2;
+    invoice_id = 3;

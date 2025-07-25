@@ -1,6 +1,6 @@
 /*
 Procedure 存储过程
-    其实现在存储过程用的很少，因为后端开发都有很强大的ORM框架。（但是必须了解）
+    现在存储过程用的很少，因为后端开发都有很强大的ORM框架。（但是必须了解）
 
     概念：
     1. 什么是存储过程？
@@ -9,7 +9,7 @@ Procedure 存储过程
     2. 存储过程有啥用？
         2.1 假设你要开发软件，你的SQL语句写在哪里呢？
             如果将SQL和业务代码混在一起，会变得难以维护，所以应该将SQL代码和业务代码分开，这时使用存储过程就很合理。
-            将SQL放在存储过程或者函数汇总，在业务代码汇总调用对应的存储过程就行。
+            将SQL放在存储过程或者函数中，在业务代码中调用对应的存储过程就行。
         2.2存储过程还会对性能有优化
             大部分DBMS会对储存过程中的代码进行一些优化，因此有时储存过中的SQL代码执行起来会更快。
         2.3 存储过程和视图一样，能加强数据安全
@@ -34,6 +34,30 @@ Procedure 存储过程
             DROP PROCEDURE IF EXISTS get_data;
 
         3. 带参数的存储过程
+            就是调用此存储过程需要传入参数，也可以设置默认参数。
+
+        4. 参数验证：就是对传过来的参数进行验证，符合条件就执行SQL，不符合就报错。
+            1. 储存过程除了可以查，也可以增删改，但修改数据前最好先进行参数验证以防止不合理的修改
+            2. 主要利用 IF 条件语句和 SIGNAL SQLSTATE MESSAGE_TEXT 关键字
+            3. 语法：在存储过程主体开头添加以下语句：
+                    IF 错误参数条件表达式 THEN
+                    SIGNAL SQLSTATE '错误类型'
+                    [SET MESSAGE_TEXT = '关于错误的补充信息']（可选）
+            4. 参数验证一般前后端验证，这里只是最后的防线。
+            5. 错误类型查看网址：https://www.ibm.com/docs/en/db2-for-zos/13.0.0?topic=codes-sqlstate-values-common-error
+        5. 输出参数：
+            没事别搞！除非真的需要！
+        6. 变量
+            变量分两种:
+            1. 用户或会话变量： SET @变量名 = 值
+            2. 本地变量： DECLARE 变量名 数据类型 [DEFAULT 默认值]
+            用户或会话变量（User or session variable）：
+                上节课讲过，用 SET 语句并在变量名前加 @ 前缀来定义，将在整个用户会话期间存续，在会话结束断开MySQL
+                连接时才被清空，这种变量主要在调用带输出变量的储存过程时使用，用来传入储存过程作为输出参数来获取结果
+                值。
+            本地变量（Local variable）
+                在储存过程或函数中通过 DECLARE 声明并使用，在函数或储存过程执行结束时就被清空，常用来执行储存过程
+                （或函数）中的计算
 */
 
 /*
@@ -48,18 +72,12 @@ BEGIN
         clients;
 END $$
 DELIMITER ;
-/*
-手动调用存储过程
-*/
+
+# 调用存储过程
 CALL get_clients();
 
-/*
-删除存储过程
-    注意加上 IF EXISTS,这样不会报错，DROP VIEW 也一样。
-    如果原本不存在该视图或者存储过程，直接使用DROP会报错。
-*/
+# 删除存储过程
 DROP PROCEDURE IF EXISTS get_clients;
-
 
 #创建存储过程
 USE sql_invoicing;
@@ -86,7 +104,8 @@ CALL get_balance();
 # 根据州获取用户信息
 USE sql_invoicing;
 DELIMITER $$
-CREATE PROCEDURE get_clients_by_state(state char(2)) # state char(2) 表示需要传入的参数，以及参数类型，多个参数用','分隔
+# state char(2) 表示需要传入的参数，以及参数类型，多个参数用','分隔
+CREATE PROCEDURE get_clients_by_state(state char(2))
 BEGIN
     SELECT * FROM clients c WHERE c.state = state; # 根据输入参数筛选
 END $$
@@ -107,13 +126,12 @@ DELIMITER ;
 
 CALL get_invoices_by_clients(1);
 
-
-
 # 创建带"默认参数"的存储过程
 # 根据州获取用户信息,如果用户输入为NULL，那就返回所有用户信息
 USE sql_invoicing;
 DELIMITER $$
-CREATE PROCEDURE get_clients_by_state(state char(2)) # state char(2) 表示需要传入的参数，以及参数类型，多个参数用','分隔
+# state char(2) 表示需要传入的参数，以及参数类型，多个参数用','分隔
+CREATE PROCEDURE get_clients_by_state(state char(4))
 BEGIN
     #     IF state IS NULL
     #         THEN
@@ -126,8 +144,8 @@ BEGIN
 
     SELECT * FROM clients c WHERE c.state = IFNULL(state, c.state);
     # c.state = IFNULL(state, c.state)含义：
-    #         if static = null，IFNULL函数则返回第二个参数的值，那就是c.tatie,c.tatic就是自己本身，最后c.state = c.state 结果为True
-    #             那就执行对应的SELECT
+    #         if static = null，IFNULL函数则返回第二个参数的值，那就是c.tatie,c.tatic就是自己本身，
+    #           最后c.state = c.state 结果为True,那就执行对应的SELECT
     #         if static != null, 那 c.static = static传过来的值，根据值来执行SQL。
 END $$
 DELIMITER ;
@@ -135,9 +153,6 @@ DELIMITER ;
 CALL get_clients_by_state(NULL);
 CALL get_clients_by_state('CA');
 
-
-
-# 创建带"默认参数"的存储过程
 # 根据用户id以及用户的支付方式，查询支付记录信息。
 #     如果id和支付方式为NULL，则返回所有用户以及所有的支付记录。
 USE sql_invoicing;
@@ -160,3 +175,104 @@ CALL get_payments(1, 1);
 CALL get_payments(5, NULL);
 CALL get_payments(NULL, 2);
 CALL get_payments(NULL, NULL);
+
+# 参数验证：就是对传过来的参数进行验证，复合条件就执行SQL，不符合就报错。
+# 创建一个修改invoice的存储过程。payment_amount参数不能为负数！
+DROP PROCEDURE IF EXISTS make_payment;
+DELIMITER $$
+CREATE PROCEDURE `make_payment`(
+    invoice_id INT,
+    payment_amount DECIMAL(9, 2),
+    payment_date DATE
+)
+BEGIN
+    # 添加参数验证
+    IF payment_amount <= 0
+        THEN
+            SIGNAL SQLSTATE '22003'
+                SET MESSAGE_TEXT = '金额不符合条件！';
+        END IF;
+    UPDATE invoices i
+    SET
+        i.payment_total = payment_amount,
+        i.payment_date  = payment_date
+    WHERE
+        i.invoice_id = invoice_id;
+END$$
+DELIMITER ;
+
+CALL make_payment(2, 1000, '2015-09-09');
+# -100肯定不行
+CALL make_payment(2, -100, '2015-09-09');
+
+# 输出参数
+# 这个procedure是没有带输出参数的，先演示没有带输出参数的。
+DELIMITER $$
+CREATE PROCEDURE `get_unpaid_invoices_for_client`(
+    client_id INT
+)
+BEGIN
+    SELECT
+        COUNT(*),
+        SUM(invoice_total)
+    FROM
+        invoices i
+    WHERE
+          i.client_id = client_id
+      AND payment_total = 0;
+END$$
+DELIMITER ;
+CALL get_unpaid_invoices_for_client(5);
+
+# 这个procedure是带输出参数的。和上面的对比一下
+DELIMITER $$
+CREATE PROCEDURE `get_unpaid_invoices_for_client`(
+    client_id INT,
+    OUT invoice_count INT,
+    OUT invoice_total DECIMAL(9, 2)
+    -- 默认是输入参数，输出参数要加OUT前缀
+)
+BEGIN
+    SELECT
+        COUNT(*),
+        SUM(invoice_total)
+
+    INTO invoice_count, invoice_total
+    -- SELECT后跟上INTO语句将SELECT选出的值传入输出参数（输出变量）中
+    FROM
+        invoices i
+    WHERE
+          i.client_id = client_id
+      AND payment_total = 0;
+END$$
+DELIMITER ;
+# 调用存储过程
+SET @invoice_count = 0;
+SET @invoice_total = 0;
+CALL get_unpaid_invoices_for_client(5, @invoice_count, @invoice_total);
+SELECT @invoice_count, @invoice_total;
+
+# 变量
+# 创造一个 get_risk_factor 储存过程，
+# 使用公式 risk_factor = invoices_total / invoices_count * 5
+DELIMITER $$
+CREATE PROCEDURE `get_risk_factor`()
+BEGIN
+    -- 声明三个本地变量，可设默认值
+    DECLARE risk_factor DECIMAL(9, 2) DEFAULT 0;
+    DECLARE invoices_total DECIMAL(9, 2);
+    DECLARE invoices_count INT;
+    -- 用SELECT得到需要的值并用INTO传入invoices_total和invoices_count
+    SELECT
+        SUM(invoice_total),
+        COUNT(*)
+    INTO invoices_total, invoices_count
+    FROM
+        invoices;
+    -- 【用SET语句给risk_factor计算赋值】
+    SET risk_factor = invoices_total / invoices_count * 5;
+    -- 【SELECT展示】最终结果risk_factor
+    SELECT risk_factor;
+END$$
+DELIMITER ;
+

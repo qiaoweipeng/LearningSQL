@@ -87,6 +87,7 @@ SELECT LEAST(1, 5, 2, 8, 3);
 
 
 -- String
+#     注意：MYSQL中字符串索引从1开始！！！
 /*统计字符个数*/
 SELECT LENGTH('sky');
 -- 返回 3 （求字符串长度）

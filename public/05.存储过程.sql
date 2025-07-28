@@ -276,3 +276,55 @@ BEGIN
 END$$
 DELIMITER ;
 
+
+# 自定义函数
+/*
+    因为自定义函数和存储过程很相似，所以就和存储过程放在一起学习！
+    函数和储存过程的作用非常相似，唯一区别是函数只能返回单一值而不能返回多行多列的结果集，
+        当你只需要返回一个值时就可以创建函数。
+    创建函数的语法和创建储存过程的语法极其相似，区别只在两点：
+        1. 参数设置和 body 主体之间，有一段确定返回值类型以及函数属性的语句段
+        2. 最后是返回（RETURN）值而不是查询（SELECT）值
+    函数属性的说明：
+        1. DETERMINISTIC:函数对相同地输入永远返回相同的结果。比如：计算折扣价，有固定地计算逻辑
+        2. READS SQL DATA:函数会查询数据库（如执行 SELECT），但不会修改数据。
+        3. MODIFIES SQL DATA:函数会修改数据库数据（如执行 INSERT/UPDATE/DELETE）。避免在函数中使用（用存储过程替代）
+    */
+# 定义函数
+USE sql_invoicing;
+DELIMITER $$
+CREATE FUNCTION `get_risk_factor_for_client`(
+    client_id INT
+)
+    RETURNS INTEGER
+    READS SQL DATA
+BEGIN
+    DECLARE risk_factor DECIMAL(9, 2) DEFAULT 0;
+    DECLARE invoices_total DECIMAL(9, 2);
+    DECLARE invoices_count INT;
+    SELECT
+        SUM(invoice_total),
+        COUNT(*)
+    INTO invoices_total, invoices_count
+    FROM
+        invoices i
+    WHERE
+        i.client_id = client_id;
+    -- 注意不再是整体risk_factor而是特定顾客的risk_factor
+    SET risk_factor = invoices_total / invoices_count * 5;
+    RETURN IFNULL
+           (risk_factor, 0);
+
+END$$
+DELIMITER ;
+# 使用函数
+SELECT
+    client_id,
+    name,
+    get_risk_factor_for_client(client_id) AS risk_factor
+-- 其实是逐行调用
+FROM
+    clients;
+# 删除函数
+DROP FUNCTION IF EXISTS get_risk_factor_for_client;
+

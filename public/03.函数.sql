@@ -2,9 +2,49 @@
 Function 函数
     聚合函数、窗口函数、String、Numeric、Date、高级函数（IFNULL和COALESCE、IF和CASE）
     函数肯定不止这些，比如String或Date还有很多就不一一展示了，自行查阅文档。
+
+    窗口函数：
+    从MySQL8.0开始支持！
+    核心特点：
+        保留原始行：计算结果会作为新列添加到每一行中。
+        定义窗口：通过 OVER() 子句指定计算范围（分区、排序、框架）。
+        灵活分析：支持排名、累计计算、前后行比较等高级分析。
+    语法：
+        function_name(expression) OVER (
+            [PARTITION BY partition_expression]
+            [ORDER BY sort_expression [ASC|DESC]]
+            [frame_clause]
+        )
+    关键字句含义：
+        1.PARTITION BY ：将数据划分为多个分区（类似于GROUP BY），函数在每个分区内独立计算。
+        2.ORDER BY：指定分区的排序规则。
+        3.frame_clause：窗口框架。
+    常用窗口函数分类
+        1. 序号函数
+            函数	说明	示例
+            ROW_NUMBER()	分区内唯一序号（连续）	1,2,3,...
+            RANK()	并列时跳跃排名	1,1,3,...
+            DENSE_RANK()	并列时连续排名	1,1,2,...
+        2. 分布函数
+            函数	说明
+            PERCENT_RANK()	相对百分比排名
+            CUME_DIST()	累积分布
+        3. 前后函数
+            函数	说明
+            LAG(expr, offset)	访问分区内前 N 行
+            LEAD(expr, offset)	访问分区内后 N 行
+        4. 首尾函数
+            函数	说明
+            FIRST_VALUE(expr)	分区第一行的值
+            LAST_VALUE(expr)	分区最后一行的值
+        5. 聚合函数（窗口模式）
+            函数	说明
+            SUM(), AVG(), MIN(), MAX(), COUNT()	支持窗口计算
+
 */
 
 # 聚合函数：输入一系列值并聚合为一个结果的函数
+#     聚合函数经常与GROUP BY一起使用
 # 常用的聚合函数有哪些？
 USE sql_invoicing;
 # 计算行数
@@ -12,7 +52,10 @@ SELECT
     COUNT(invoice_id),
     # 使用 DISTINCT剔除重复行
     COUNT(DISTINCT payment_total),
-    COUNT(payment_total)
+    # 会忽略NULL
+    COUNT(payment_date),
+    # 计数
+    COUNT(*)
 FROM
     invoices;
 # 平均值、最大值和最小值
@@ -29,10 +72,6 @@ FROM
     invoices
 WHERE
     invoice_id = 10;
-
-# 窗口函数
-# TODO
-
 # Numeric 数值
 SELECT ABS(-10); -- 返回 10。（求绝对值）
 SELECT CEIL(4.2); -- 返回 5。（天花板函数，不管是4.几，结果都是5）
@@ -270,52 +309,14 @@ FROM
 ORDER BY
     points DESC;
 
-# 自定义函数
-/*
-    函数和储存过程的作用非常相似，唯一区别是函数只能返回单一值而不能返回多行多列的结果集，
-        当你只需要返回一个值时就可以创建函数。
-    创建函数的语法和创建储存过程的语法极其相似，区别只在两点：
-        1. 参数设置和 body 主体之间，有一段确定返回值类型以及函数属性的语句段
-        2. 最后是返回（RETURN）值而不是查询（SELECT）值
-    函数属性的说明：
-        1. DETERMINISTIC:函数对相同地输入永远返回相同的结果。比如：计算折扣价，有固定地计算逻辑
-        2. READS SQL DATA:函数会查询数据库（如执行 SELECT），但不会修改数据。
-        3. MODIFIES SQL DATA:函数会修改数据库数据（如执行 INSERT/UPDATE/DELETE）。避免在函数中使用（用存储过程替代）
-    */
-# 定义函数
-USE sql_invoicing;
-DELIMITER $$
-CREATE FUNCTION `get_risk_factor_for_client`(
-    client_id INT
-)
-    RETURNS INTEGER
-    READS SQL DATA
-BEGIN
-    DECLARE risk_factor DECIMAL(9, 2) DEFAULT 0;
-    DECLARE invoices_total DECIMAL(9, 2);
-    DECLARE invoices_count INT;
-    SELECT
-        SUM(invoice_total),
-        COUNT(*)
-    INTO invoices_total, invoices_count
-    FROM
-        invoices i
-    WHERE
-        i.client_id = client_id;
-    -- 注意不再是整体risk_factor而是特定顾客的risk_factor
-    SET risk_factor = invoices_total / invoices_count * 5;
-    RETURN IFNULL
-           (risk_factor, 0);
-
-END$$
-DELIMITER ;
-# 使用函数
+# 窗口函数
+# TODO：窗口函数后续在完善
+USE sql_store;
+# 查询用户信息，按static分区，将每个区的points降序排列并显示排名
 SELECT
-    client_id,
-    name,
-    get_risk_factor_for_client(client_id) AS risk_factor
--- 其实是逐行调用
+    first_name,
+    state,
+    points,
+    DENSE_RANK() OVER (PARTITION BY state ORDER BY points DESC ) AS 排名
 FROM
-    clients;
-# 删除函数
-DROP FUNCTION IF EXISTS get_risk_factor_for_client;
+    customers;

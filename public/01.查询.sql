@@ -1,9 +1,13 @@
 /*
   查询中关键字的含义：
     SELECT：检索表格数据
+        AS：给列字段起别名，也可以用空格代替AS。
+        DESTINY：去除重复的行。
     FROM：选择表
     WHERE：根据条件过滤记录/行
     ORDER BY：对结果排序
+        ASC 升序（默认内省）
+        DESC 降序
     GROUP BY：聚合函数的分组
     HAVING：分组过滤
     LIMIT：限制结果数量
@@ -11,6 +15,8 @@
     INNER JOIN / JOIN：内连接。返回两张表匹配的记录
     LEFT JOIN：左连接（外）。左表返回所有记录，右表匹配左表
     RIGHT JOIN：右连接（外）。右表返回所有记录，左表匹配右表
+    FULL JOIN：
+    CROSS JOIN：将每个表的每个字段都排列出来
 
     ON：连接条件
     USING：连接条件
@@ -24,14 +30,12 @@
       --       表示单行注释
     斜杠**斜杠   表示多行注释
 */
-/*
-SELECT 语句
-    - 注意： * 表示查询所有的字段，这里只是为了演示，如果数据量特别大，不要使用*，会造成服务器或者网络负担。
-    - SELECT选择的不仅可以是列，也可以是数字、列间表达式、列的聚合函数
-    - 列字段中可以使用算数运算 + - * / %
-    - AS 表示起别名，也可以使用空格代替AS。
-    - DISTINCT 表示去重。Distinct必须跟在Select之后
-  FROM：表示来自哪个表（要查哪个表的数据）*/
+
+
+# SELECT 语句
+#     注意： * 表示查询所有的字段，这里只是为了方便演示，如果数据量特别大，不要使用*，会造成服务器或者网络负担。
+#     SELECT选择的不仅可以是列，也可以是数字、列间表达式、列的聚合函数
+#     列字段中可以使用算数运算 + - * / %
 
 # 检索用户id小于10的信息，并根据first_name排序。
 USE sql_store; # 使用当前数据库
@@ -42,60 +46,345 @@ WHERE
     customer_id < 10
 ORDER BY
     first_name;
+
 # 单价涨价10%作为新单价
 SELECT
-    name,
+    name AS          商品名称,
     unit_price,
     unit_price * 1.1 'new price'
 FROM
     products;
 
+#  DISTINCT 表示去重,返回的两行数据完全重复才可以去重
+#     检索手机号是11位的用户信息，根据州去重
+USE sql_store;
+SELECT DISTINCT
+    state
+FROM
+    customers
+WHERE
+    LENGTH(phone) = 11;
+
 /*
 WHERE子句：行筛选条件，实际是一行一行或一条条记录依次验证是否符合条件，进行筛选
-    - 比较运算符： >、 < 、= 、>=、 <= 、!=  或 <>
-    - 逻辑运算符：AND、OR、NOT
-            AND：需要满足所有条件
-            OR：只需要满足一个
-            NOT：取反
-    - 特殊比较运算：IN、BETWEEN、LIKE、REGEXP、IS NULL
-            IN（a,b）：表示包含a或者b
-            BETWEEN a AND b:表示在a和b之间 或 NOT BETWEEN 10 AND 20:表示不在10~20之间
-            LIKE：模糊匹配
-            REGEXP：正则匹配
-            IS NULL：判断是否 IS NULL（为空）或 IS NOT NULL（不为空）
-ORDER BY子句：对结果排序
-    - ASC 升序（默认内省）
-    - DESC 降序
 
-LIMIT：限制返回结果的记录数量
-
+比较运算符： >、 < 、= 、>=、 <= 、!=  或 <>
 */
+# 查询points大于3000的用户信息
+SELECT *
+FROM
+    customers
+WHERE
+    points > 3000;
 
+# 查询state不是VA的用户信息
+SELECT *
+FROM
+    customers
+WHERE
+    state != 'VA';
+# SQL中不区分大小写，所以'VA'和'va'效果一样
+
+# 查询2019年的订单
+# 注意SQL里日期的标准写法以及其需要用引号包裹
+SELECT *
+FROM
+    orders
+WHERE
+    order_date > '2019-01-01';
 
 /*
-INNER JOIN
+   逻辑运算符：AND、OR、NOT
+           AND：需要满足所有条件
+           OR：只需要满足一个
+           NOT：取反
+   用逻辑运算符AND、OR、NOT对数学运算和比较运算进行组合实现多重条件筛选
+   执行优先级：数学→比较→逻辑
+
 */
+-- 查询90后并且积分大于1000的用户信息
+SELECT *
+FROM
+    customers
+WHERE
+      birth_date > '1990-01-01'
+  AND points > 1000;
+
+-- 查询用户信息。要么是90后，要么积分大于1000并且州为VA
+SELECT *
+FROM
+    customers
+WHERE
+     birth_date > '1990-01-01'
+  OR points > 1000
+         AND state = 'VA';
+
+-- 查询用户信息。要么是1990年后，要么points >1000并且state为VA
+SELECT *
+FROM
+    customers
+WHERE
+     birth_date > '1990-01-01'
+  OR (points > 1000 AND state = 'VA');
+# AND优先级高于OR，但最好加括号，代码更清晰
+
+-- 查询 除了90后，除了积分大于1000的用户信息
+# 任何Boolean值都可以取返
+SELECT *
+FROM
+    customers
+WHERE
+    NOT (birth_date > '1990-01-01' OR points > 1000);
+-- NOT 在这里就是除了的意思
+-- 同上
+SELECT *
+FROM
+    customers
+WHERE
+      birth_date <= '1990-01-01'
+  AND points <= 1000;
+
+# 查询订单6中总价大于30的商品
+SELECT *
+FROM
+    order_items
+WHERE
+      order_id = 6
+  AND quantity * unit_price > 30;
+-- 总价 = 数量 * 单价
 
 /*
-LEFT JOIN
+   特殊比较运算：IN、BETWEEN、LIKE、REGEXP、IS NULL
+           IN（a,b）：表示包含a或者b
+           BETWEEN a AND b:表示在a和b之间 或 NOT BETWEEN 10 AND 20:表示不在10~20之间
+           LIKE：模糊匹配
+           REGEXP：正则匹配
+           IS NULL：判断是否 IS NULL（为空）或 IS NOT NULL（不为空）
 */
+# IN
+# 用IN运算符将某一属性与多个值（一列值）进行比较 ，
+# 实质是多重相等比较运算条件的简化
+-- 选出'va'、'fl'、'ga'三个州的顾客
+SELECT *
+FROM
+    customers
+WHERE
+     state = 'VA'
+  OR state = 'FL'
+  OR state = 'GA';
+# 使用IN简化以上WHERE子句
+SELECT *
+FROM
+    customers
+WHERE
+    state IN ('va', 'fl', 'ga');
+# 也可以加NOT，表示不包含这三个洲的顾客
+SELECT *
+FROM
+    customers
+WHERE
+    state NOT IN ('VA', 'FL', 'GA');
+-- NOT IN 取反
 
-/*
-USING
+# 注意：
+# 不能 state = 'va' OR 'fl' OR 'ga' 因为数学和比较运算优先于逻辑运算
+# 加括号 state = ('va' OR 'fl' OR 'ga') 也不行，逻辑运算符只能连接布尔值。
+
+# 查询库存量刚好为49、38或72的产品
+-- 库存量刚好为49、38或72的产品
+SELECT *
+FROM
+    products
+WHERE
+    quantity_in_stock IN (100, 500, 72);
+
+# BETWEEN
+# 表示范围型条件
+# BWTWEEN之间用AND而非括号
+# 必须闭区间，包含两端点
+# 也可用于日期，毕竟日期本质也是数值，日期也有大小（早晚），可比较运算
+# 同 IN 一样，BETWEEN 本质也是一种特定的 多重比较运算条件 的简化
+-- 选出积分在1k到3k的顾客
+SELECT *
+FROM
+    customers
+WHERE
+      points >= 1000
+  AND points <= 3000;
+# 以上代码可简化为
+SELECT *
+FROM
+    customers
+WHERE
+    points BETWEEN 1000
+        AND 3000;
+-- 选出90后的顾客
+SELECT *
+FROM
+    customers
+WHERE
+    birth_date BETWEEN '1990-01-01'
+        AND '2000-01-01';
+#  BWTWEEN 也可使用NOT
+-- 选出不包含90后的顾客
+SELECT *
+FROM
+    customers
+WHERE
+    birth_date NOT BETWEEN '1990-01-01'
+        AND '2000-01-01';
+
+# LIKE
+#  模糊查找，查找具有某种模式的字符串的记录或行
+# 注意
+#  过时用法（但有时还是比较好用），下节课的正则表达式更灵活更强大
+#  注意和正则表达式一样都是用引号包裹表示字符串,引号内描述想要的字符串模式
+#  % 任何个数(包括0个）的字符(类似通配符里的*)
+#    '%abc%' 表示包含abc
+#    'a%' 表示以a开头
+#    '%a' 表示以a结尾
+#  _ 单个字符(类似通配符里的？)
+
+SELECT *
+FROM
+    customers
+-- WHERE
+--         last_name LIKE 'brush%' -- 筛选以brush开头
+WHERE
+    last_name LIKE 'b____y';
+-- 筛选b和y之间包含四个字符
+
+-- 分别选择满足如下条件的顾客：
+-- 1.地址包含'TRAIL'或'AVENUE'
+-- 2.电话号码以9 结束
+SELECT *
+FROM
+    customers
+WHERE
+     address LIKE '%trail%'
+  OR address LIKE '%avenue%'
+  OR phone LIKE '%9';
+# REGEXP
+# - 正则表达式，在搜索字符串方面更为强大，可搜索更复杂的模板
+#  - 以下为常用规则
+#     符号          含义
+#     ^           beginning
+#     $           end
+#     [abc]       含列表中的字母
+#     [^abc]      不含列表中的字母
+#     [a-f]       含a-f的
+#     还有很多自己去查！！！
+-- 查找 姓中包含field的用户信息
+SELECT *
+FROM
+    customers
+WHERE
+    last_name LIKE '%field%';
+# 等效于
+SELECT *
+FROM
+    customers
+WHERE
+    last_name REGEXP 'field';
+
+# - 分别选择满足如下条件的顾客：
+# 1. first names是ELKA或AMBUR
+# 2. last names 以 EY或ON结束
+# 3. last names以MY开头或包含SE
+# 4. last names 包含BR或BU
+SELECT *
+FROM
+    customers
+WHERE
+    first_name REGEXP 'elka|ambur' WHERE
+    last_name REGEXP 'ey$|on$'
+WHERE
+    last_name REGEXP '^my|se'
+WHERE
+    last_name REGEXP 'b[ru]';
+-- 或 'br|bu'
+
+#  注意
+# - like 和 regexp 的模糊搜索里对文本模式的表达依旧不区分大小写
+# - like 和 regexp 本质上也是条件判断，结果也是布尔值，自然也可以加 NOT 取反：NOT LIKE、NOT REGEXP
+
+#  IS NULL
+# - 找出空值，找出有某些属性缺失的记录
+-- 找出电话号码缺失的顾客，也许发个邮件提醒他们之类
+SELECT *
+FROM
+    customers
+WHERE
+    phone IS NULL;
+-- 或 is not null
+# 注意：IS NULL 和IS NOT NULL（而非 NOT IS NULL）,这里NOT更符合英语语法的放在be动词后
+-- 找出还没发货的订单 (在线商城管理员的常见查询需求)
+SELECT *
+FROM
+    orders
+WHERE
+    shipper_id IS NULL;
+
+/*ORDER BY子句：对结果排序
+- ASC 升序（默认内省）
+- DESC 降序
+-   可以包含多列，可包括没选择的列（MySQL特性），不仅可以是列，也可是列间的数学表达式以及之前定义好的别名列
+（MySQL特性）。
+    总之，MySQL 里 ORDER BY 子句里可选排序依据的灵活性极大
+-   最好别用 ORDER BY 1, 2（表示以 SELECT …… 选中列中的第1、2列为排序依据） 这种隐性依据，因为SELECT选择
+的列一变就容易出错，还是显性地写出列名作为排序依据比较好
 */
+SELECT
+    `name`,
+    unit_price,
+    unit_price * 1.1 + 10 new_price
+FROM
+    products
+ORDER BY
+    new_price ORDER BY
+        unit_price
+ORDER BY
+    unit_price * 0.9;
 
-/*
-UNION
-*/
 
-/*
-GROUP BY
-*/
+# - 订单2的商品按总价降序排列
+-- 可以以总价的数学表达式为排列依据
+SELECT *
+FROM
+    order_items
+WHERE
+    order_id = 2
+ORDER BY
+    quantity * unit_price DESC;
+-- 可以先定义总结别名，然后以别名为排列依据
+SELECT *,
+       quantity * unit_price total_price
+FROM
+    order_items
+WHERE
+    order_id = 2
+ORDER BY
+    total_price DESC;
+/*LIMIT： 限制返回结果的记录数量，“前N个” 或 “跳过M个后的前N个"*/
+SELECT *
+FROM
+    customers
+LIMIT 3
+-- 限制3条数据
+LIMIT 300 -- 限制300条
+LIMIT 6,3;
+-- 跳过前6条后，取前3条
+# - 6,3表示跳过前6个，取第7~9个，6是偏移量，
+# - 如：网页分页中每3条记录显示一页，第3页应该显示的记录就是limit 6,3
 
-/*
-HAVING
-*/
-
+# 根据points降序排列，限制三行
+# - 由于不需要筛选条件，这里就没有WHERE
+SELECT *
+FROM
+    customers
+ORDER BY
+    points DESC
+LIMIT 3;
 
 /*
 多表联查
@@ -107,7 +396,7 @@ HAVING
     1. inner join 内连接
         1.1 跨数据库连接
         1.2 self join （自连接）
-        1.3 多表连接
+        1.3 多表连接（两张表以上）
         1.4 复合连接条件
         1.5 隐含连接语法
 
@@ -131,32 +420,38 @@ HAVING
 
 */
 
--- 1. 内连接
+/*
+INNER JOIN 内连接
+*/
+# 查询所有的订单信息以及对应的客户信息
 USE sql_store;
 SELECT
-    o.order_id    商品编号,
-    o.customer_id 用户编号,
-    first_name    名字,
-    last_name     姓氏
+    o.order_id,
+    o.customer_id,
+    first_name,
+    last_name
 FROM
     orders o
         INNER JOIN customers c
-                   ON o.customer_id = c.customer_id;
+                   ON o.customer_id = c.customer_id
+ORDER BY
+    o.order_id;
 
---  通过product_id结合orders_items和products
+# 查询每个订单都包含哪些商品信息
 USE sql_store;
 SELECT
-    order_id      订单编号,
-    oi.product_id 商品编号,
-    name          商品名,
+    order_id      关联订单ID,
+    oi.product_id 关联商品ID,
+    name          商品名称,
     quantity      购买数量,
-    oi.unit_price 单价
+    oi.unit_price 商品单价
 FROM
     order_items oi
         JOIN products p
              ON oi.product_id = p.product_id;
 
 -- 1.2 跨数据库连接
+# 语法没区别就是表前面加数据库名
 USE sql_store;
 SELECT
     name          商品名,
@@ -212,11 +507,11 @@ FROM
 -- 同理，支付记录表连接顾客表和支付方式表形成顾客支付记录详情表
 USE sql_invoicing;
 SELECT
-    p.invoice_id 发票编号,
-    p.date       日期,
-    p.amount     金额,
-    c.name       客户名,
-    pm.name      付款方式
+    p.invoice_id 关联发票ID,
+    p.date       支付日期,
+    p.amount     实付金额,
+    c.name       委托方名称,
+    pm.name      支付方式名称
 FROM
     payments p
         JOIN clients c
@@ -256,8 +551,11 @@ FROM
     customers c
 WHERE
     o.customer_id = c.customer_id;
+/*
+LEFT JOIN/RIGHT JOIN ：OUTER JOIN 外连接
+左外连接/右外连接
+*/
 
--- 2.外连接
 -- 合并顾客表和订单表
 USE sql_store;
 SELECT *
@@ -272,6 +570,11 @@ FROM
     orders o
         RIGHT JOIN customers c
                    ON o.customer_id = c.customer_id;
+
+# 以上两个连接的区别？
+# 1. 使用inner join只展示有客户信息的订单信息。
+# 2. 使用right join展示所有顾客信息以及对应的订单信息，没有顾客信息的订单信息为null填充。
+
 
 -- 展示各产品在订单项目中出现的记录和销量，也要包括没有订单的产品
 USE sql_store;
@@ -301,6 +604,7 @@ FROM
                   ON o.shipper_id = s.shipper_id
 ORDER BY
     c.customer_id;
+
 -- 查询 订单 + 顾客信息 + 物流信息 + 订单状态信息，所有的订单（包括未发货的）
 -- 其实就只是前两个优先级变了一下，是要看全部订单而非全部顾客了
 USE sql_store;
@@ -319,7 +623,7 @@ FROM
         JOIN order_statuses os
              ON o.status = os.order_status_id;
 
--- 2.2 外部（自连接）
+-- 2.2 外连接中的（自连接）
 
 -- 就用前面那个员工表的例子来说，就是用LEF JOIN让得到的 员工-上级 合并表也包括老板本人（上级为空）
 USE sql_hr;
@@ -332,7 +636,66 @@ FROM
         LEFT JOIN employees m
                   ON e.reports_to = m.employee_id;
 
--- 3. USING子句
+# 其他连接
+-- 3. （最好别用）自然连接 Natural Joins
+USE sql_store;
+SELECT
+    o.order_id   用户编号,
+    c.first_name 用户名
+FROM
+    orders o
+        NATURAL JOIN customers c;
+
+# CROSS JOIN 交叉连接
+
+-- 得到用户和商品的所有组合，所以不需要合并条件
+USE sql_store;
+SELECT
+    c.first_name 用户,
+    p.name       商品
+FROM
+    customers c
+        CROSS JOIN products p
+ORDER BY
+    c.first_name;
+
+-- 上面是显性语法还有隐式语法
+USE sql_store;
+SELECT
+    c.first_name 用户,
+    p.name       商品
+FROM
+    customers c,
+    products p
+ORDER BY
+    c.first_name;
+
+-- 交叉合并shippers和products，分别用显式和隐式语法
+USE sql_store;
+SELECT
+    p.name 商品,
+    s.name 快递
+FROM
+    products p,
+    shippers s
+ORDER BY
+    s.name;
+
+-- 同上
+USE sql_store;
+SELECT
+    p.name 商品,
+    s.name 快递
+FROM
+    shippers s
+        CROSS JOIN products p
+ORDER BY
+    s.name;
+
+/*
+USING
+*/
+
 USE sql_store;
 SELECT
     o.order_id   订单编号,
@@ -382,62 +745,8 @@ FROM
 -- 列名不同就必须用 ON …… 了
 -- 实际中同一个字段在不同表列名不同的情况也很常见，不能想当然的用 USING，要先确认一下
 
--- 3. （最好别用）自然连接 Natural Joins
-USE sql_store;
-SELECT
-    o.order_id   用户编号,
-    c.first_name 用户名
-FROM
-    orders o
-        NATURAL JOIN customers c;
+# UNION 联合
 
--- 4. 交叉连接
-
--- 得到用户和商品的所有组合，所以不需要合并条件
-USE sql_store;
-SELECT
-    c.first_name 用户,
-    p.name       商品
-FROM
-    customers c
-        CROSS JOIN products p
-ORDER BY
-    c.first_name;
-
--- 上面是显性语法还有隐式语法
-USE sql_store;
-SELECT
-    c.first_name 用户,
-    p.name       商品
-FROM
-    customers c,
-    products p
-ORDER BY
-    c.first_name;
-
--- 交叉合并shippers和products，分别用显式和隐式语法
-USE sql_store;
-SELECT
-    p.name 商品,
-    s.name 快递
-FROM
-    products p,
-    shippers s
-ORDER BY
-    s.name;
-
--- 同上
-USE sql_store;
-SELECT
-    p.name 商品,
-    s.name 快递
-FROM
-    shippers s
-        CROSS JOIN products p
-ORDER BY
-    s.name;
-
--- 5.联合 UNION
 -- 给订单表增加一个新字段——status，用以区分今年的和以前的订单
 USE sql_store;
 
@@ -511,32 +820,67 @@ WHERE
     points > 3000
 ORDER BY
     用户编号;
+
+-- 想统计2019年下半年的结果
+
+# 	目标								total_sales					total_payments    what_we_expect(the difference)
+# 	date_range
+# 	1st_half_of_2019
+# 	2nd_half_of_2019
+# 	Total
+# 	思路：分类子查询 + 聚合函数 + UNION
+USE sql_invoicing;
+SELECT
+    '上半年'                           AS 统计日期,
+    SUM(invoice_total)                 AS total_sales,
+    SUM(payment_total)                 AS total_payments,
+    SUM(invoice_total - payment_total) AS what_we_expect
+FROM
+    invoices
+WHERE
+    invoice_date BETWEEN '2019-01-01' AND '2019-06-30'
+
+UNION
+SELECT
+    '下半年'                           AS 统计日期,
+    SUM(invoice_total)                 AS total_sales,
+    SUM(payment_total)                 AS total_payments,
+    SUM(invoice_total - payment_total) AS what_we_expect
+FROM
+    invoices
+WHERE
+    invoice_date BETWEEN '2019-07-01' AND '2020-01-01'
+
+UNION
+SELECT
+    'Total'                            AS 统计日期,
+    SUM(invoice_total)                 AS total_sales,
+    SUM(payment_total)                 AS total_payments,
+    SUM(invoice_total - payment_total) AS what_we_expect
+FROM
+    invoices
+WHERE
+    invoice_date BETWEEN '2019-01-01' AND '2019-12-31';
+
+
 -- 注意：
 -- 1. 使用UNION，多个SELECT中只需要第一个SELECT中定义别名即可
 -- 2. 如果使用ORDER BY也必须使用别名，如：
--- 	ORDER BY 用户编号 ; 正确写法
--- 	ORDER BY customer_id ; 错误写法
+-- 	    ORDER BY 用户编号 ; 正确写法
+-- 	    ORDER BY customer_id ; 错误写法
 
 
-/*
-子查询
-        IN 运算符
-        子查询 VS JOIN
-ALL
-
-
-ANY
-        相关子查询
-EXISTS
-        SELECT子句中的子查询
-        FROM子句中的子查询
-
-ROLLUP
-
-# 2.编写复杂查询
-/*
-主要是子查询，有的前面已经讲过了
-*/
+# 子查询
+#         IN 运算符
+#         子查询 VS JOIN
+# ALL
+# ANY
+#         相关子查询
+# EXISTS
+#         SELECT子句中的子查询
+#         FROM子句中的子查询
+#
+# ROLLUP
 
 # 2.1 子查询
 #     在products中，找到所有比Iphone16（id = 1）价格高的
@@ -597,7 +941,7 @@ WHERE
                      FROM
                          payments);
 # 2.3 子查询 VSJOIN
-TODO
+# TODO
 # 2.4 ALL关键字
 # 2.5 ANY关键字
 # 2.6 相关子查询
@@ -606,7 +950,7 @@ TODO
 # 2.9 FROM子句的子查询
 
 
-# 1.2 GROUP BY子句
+#GROUP BY子句
 # 按一列或多列分组，注意语句的位置。
 
 # 按照一个字段分组
@@ -650,7 +994,7 @@ GROUP BY
     date, pm.name
 ORDER BY
     date;
-# 1.3 HAVING子句
+#HAVING子句
 USE sql_invoicing;
 SELECT
     client_id,
